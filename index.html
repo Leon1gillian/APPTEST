@@ -1,0 +1,9 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#0f766e"><title>Leon PhysioLearn</title><link rel="manifest" href="manifest.webmanifest"><link rel="stylesheet" href="style.css"></head>
+<body><div class="app"><header><div><h1>Leon PhysioLearn</h1><p>Anatomie-Lernhilfe für Physiotherapie</p></div><button id="themeBtn">🌙</button></header>
+<section class="hero"><div><b>Heute lernen</b><span id="stats">0 Kapitel offen</span></div><div class="bar"><i id="bar"></i></div></section>
+<nav><button class="active" data-tab="chapters">Kapitel</button><button data-tab="cards">Karten</button><button data-tab="quiz">Abfrage</button><button data-tab="fav">Favoriten</button></nav>
+<main><section id="chapters" class="tab show"><div class="search"><input id="search" placeholder="Suche nach Muskel, Gelenk, Begriff..."></div><div id="chapterList"></div></section>
+<section id="cards" class="tab"><div class="search"><input id="cardSearch" placeholder="Karteikarten suchen..."></div><div id="cardList"></div></section>
+<section id="quiz" class="tab"><div class="panel"><h2>Abfrage-Modus</h2><p>Kein Spiel: Einfach Frage ansehen, nachdenken, Lösung aufklappen und abhaken.</p><button id="newQ">Neue Frage</button><article id="quizBox"></article></div></section>
+<section id="fav" class="tab"><div id="favList"></div></section></main></div><script src="data.js"></script><script src="app.js"></script></body></html>
