@@ -21,3 +21,19 @@ nav{position:sticky;top:0;z-index:20;background:linear-gradient(var(--bg) 72%,tr
 .card{padding:18px}.kvwrap{display:grid;gap:12px;margin-top:14px}.kv{display:block;background:var(--soft);border:1px solid var(--line);border-radius:19px;padding:15px;margin:0}.kv b{display:block;color:var(--brand);font-size:14px;margin-bottom:8px}.kv span{display:block;line-height:1.68;color:var(--txt)}.kv.ursprung{border-left:5px solid #3b82f6}.kv.ansatz{border-left:5px solid #22c55e}.kv.innervation{border-left:5px solid #f59e0b}.kv.funktion{border-left:5px solid #8b5cf6}
 .quiz-panel h2{margin:4px 0 6px;font-size:26px;letter-spacing:-.03em}#quizBox{margin-top:16px;background:var(--soft);border:1px solid var(--line);border-radius:22px;padding:16px}#quizBox h3{margin:0 0 10px;font-size:20px;line-height:1.35}#quizBox .answer{display:none;white-space:pre-wrap;background:var(--card-solid);border:1px solid var(--line);border-radius:18px;padding:14px;margin:14px 0;color:var(--txt);line-height:1.65}.showAnswer .answer{display:block}.install{font-size:13px;color:var(--muted)}
 @media (min-width:420px){.info-line{grid-template-columns:132px 1fr;align-items:start}.topbar h1{font-size:36px}.kv{padding:16px}.app{padding-left:18px;padding-right:18px}}
+
+
+/* Fix: verhindert verschachtelte, immer schmaler werdende Texte auf Handy */
+.body, .learn-section, .learn-section *{max-width:100%;min-width:0;overflow-wrap:anywhere;word-break:normal}
+.learn-section .learn-section{margin-left:0;margin-right:0}
+.body{font-size:17px;line-height:1.82}
+.learn-section{width:100%;display:block}
+.info-line{width:100%}
+@media (max-width:419px){
+  .app{padding-left:12px;padding-right:12px}
+  .chapter,.panel,.card,.hero{padding:16px;border-radius:24px}
+  .learn-section{padding:16px;margin:16px 0;border-radius:20px}
+  .info-line{display:block;padding:14px}
+  .info-line b{display:block;margin-bottom:7px}
+  .clean-list li{padding-right:12px}
+}

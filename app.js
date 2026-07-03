@@ -18,25 +18,35 @@ function formatLine(line){
 }
 function formatBody(text){
   const lines=String(text||'').split('\n');
-  let html='', inList=false;
-  const closeList=()=>{if(inList){html+='</ul>';inList=false;}};
+  let html='';
+  let inSection=false;
+  let inList=false;
+  const closeList=()=>{ if(inList){ html+='</ul>'; inList=false; } };
+  const closeSection=()=>{ closeList(); if(inSection){ html+='</section>'; inSection=false; } };
+  const openSection=(title)=>{
+    closeSection();
+    html+=`<section class="learn-section"><h3>${escapeHtml(title)}</h3>`;
+    inSection=true;
+  };
+  const ensureSection=()=>{
+    if(!inSection){ html+='<section class="learn-section">'; inSection=true; }
+  };
+
   for(const raw of lines){
     const line=raw.trim();
-    if(!line){closeList(); continue;}
-    const isHeading=/^[🦴🔗💪📖🔄💡🧠⚙️⭐📝]/.test(line) || /^[A-ZÄÖÜ0-9 ()\/.-]{4,}$/.test(line) && line.length<65;
-    if(isHeading){closeList(); html+=`<section class="learn-section"><h3>${escapeHtml(line)}</h3>`; continue;}
+    if(!line){ closeList(); continue; }
+    const isHeading=/^[🦴🔗💪📖🔄💡🧠⚙️⭐📝📌🧩🦵🦶]/.test(line) || (/^[A-ZÄÖÜ0-9 ()\/.-]{4,}$/.test(line) && line.length<65);
+    if(isHeading){ openSection(line); continue; }
+    ensureSection();
     if(line.startsWith('- ')){
-      if(!inList){html+='<ul class="clean-list">'; inList=true;}
+      if(!inList){ html+='<ul class="clean-list">'; inList=true; }
       html+=formatLine(line);
     } else {
       closeList();
-      if(!html.endsWith('</section>') && html.includes('<section') && !html.endsWith('</ul>')) html+=formatLine(line);
-      else html+=`<section class="learn-section">${formatLine(line)}`;
+      html+=formatLine(line);
     }
   }
-  closeList();
-  const open=(html.match(/<section/g)||[]).length, close=(html.match(/<\/section>/g)||[]).length;
-  html+='</section>'.repeat(Math.max(0,open-close));
+  closeSection();
   return html || `<p>${escapeHtml(text)}</p>`;
 }
 function chapterIcon(title){const t=title.toLowerCase(); if(t.includes('hüft'))return '🦴'; if(t.includes('knie'))return '🦵'; if(t.includes('fuß')||t.includes('fuss'))return '🦶'; if(t.includes('schulter'))return '💪'; if(t.includes('ellenbogen'))return '🦾'; if(t.includes('hand'))return '✋'; if(t.includes('rücken'))return '🧍'; if(t.includes('bauch'))return '🫁'; if(t.includes('wirbel'))return '🦴'; if(t.includes('schädel'))return '💀'; return '📘'}
