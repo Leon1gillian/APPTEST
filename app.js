@@ -4,7 +4,7 @@ const $$=s=>[...document.querySelectorAll(s)];
 let learned=new Set(JSON.parse(localStorage.learned||'[]'));
 let fav=new Set(JSON.parse(localStorage.fav||'[]'));
 function save(){localStorage.learned=JSON.stringify([...learned]);localStorage.fav=JSON.stringify([...fav]);updateStats()}
-function updateStats(){let p=Math.round(learned.size/D.chapters.length*100);$('#bar').style.width=p+'%';$('#stats').textContent=`${learned.size}/${D.chapters.length} Kapitel gelernt`;}
+function updateStats(){let p=Math.round(learned.size/D.chapters.length*100);$('#bar').style.width=p+'%';$('#stats').textContent=`${learned.size}/${D.chapters.length} Kapitel gelernt`;if($('#chapterCount'))$('#chapterCount').textContent=D.chapters.length;if($('#cardCount'))$('#cardCount').textContent=D.cards.length;if($('#quizCount'))$('#quizCount').textContent=D.quiz.length;}
 function escapeHtml(s){return String(s||'').replace(/[&<>]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]))}
 function formatLine(line){
   const safe=escapeHtml(line.trim());
@@ -39,12 +39,15 @@ function formatBody(text){
   html+='</section>'.repeat(Math.max(0,open-close));
   return html || `<p>${escapeHtml(text)}</p>`;
 }
+function chapterIcon(title){const t=title.toLowerCase(); if(t.includes('hüft'))return '🦴'; if(t.includes('knie'))return '🦵'; if(t.includes('fuß')||t.includes('fuss'))return '🦶'; if(t.includes('schulter'))return '💪'; if(t.includes('ellenbogen'))return '🦾'; if(t.includes('hand'))return '✋'; if(t.includes('rücken'))return '🧍'; if(t.includes('bauch'))return '🫁'; if(t.includes('wirbel'))return '🦴'; if(t.includes('schädel'))return '💀'; return '📘'}
 function renderChapters(q=''){
   let list=$('#chapterList');q=q.toLowerCase();list.innerHTML='';
-  D.chapters.filter(c=>(c.title+' '+c.body).toLowerCase().includes(q)).forEach((c,i)=>{
+  const items=D.chapters.filter(c=>(c.title+' '+c.body).toLowerCase().includes(q));
+  if(!items.length){list.innerHTML='<div class="panel"><h2>Nichts gefunden</h2><p>Versuche einen anderen Begriff, z. B. Muskel, Band oder Gelenk.</p></div>';return;}
+  items.forEach((c,i)=>{
     let div=document.createElement('article');
     div.className='chapter '+(learned.has(c.title)?'learned':'');
-    div.innerHTML=`<div class="chapter-head"><h2>${c.title}</h2><p>${c.summary||''}</p><span class=tag>${c.count} Lernzeilen</span></div><div class=row><button class=ghost data-open>Aufklappen</button><button data-done>${learned.has(c.title)?'Gelernt ✓':'Als gelernt markieren'}</button><button class=ghost data-fav>${fav.has(c.title)?'⭐ Gespeichert':'☆ Favorit'}</button></div><div class=body>${formatBody(c.body)}</div>`;
+    div.innerHTML=`<div class="chapter-head"><span class="eyebrow">${chapterIcon(c.title)} Kapitel ${i+1}</span><h2>${c.title}</h2><p>${c.summary||''}</p><span class=tag>${c.count} Lernzeilen</span></div><div class=row><button class=ghost data-open>Aufklappen</button><button data-done>${learned.has(c.title)?'Gelernt ✓':'Als gelernt markieren'}</button><button class=ghost data-fav>${fav.has(c.title)?'⭐ Gespeichert':'☆ Favorit'}</button></div><div class=body>${formatBody(c.body)}</div>`;
     div.querySelector('[data-open]').onclick=()=>{div.classList.toggle('open'); div.querySelector('[data-open]').textContent=div.classList.contains('open')?'Zuklappen':'Aufklappen'};
     div.querySelector('[data-done]').onclick=()=>{learned.has(c.title)?learned.delete(c.title):learned.add(c.title);save();renderChapters($('#search').value)};
     div.querySelector('[data-fav]').onclick=()=>{fav.has(c.title)?fav.delete(c.title):fav.add(c.title);save();renderChapters($('#search').value);renderFav()};
@@ -53,14 +56,16 @@ function renderChapters(q=''){
 }
 function renderCards(q=''){
   let list=$('#cardList');q=q.toLowerCase();list.innerHTML='';
-  D.cards.filter(c=>JSON.stringify(c).toLowerCase().includes(q)).slice(0,250).forEach(c=>{
+  const items=D.cards.filter(c=>JSON.stringify(c).toLowerCase().includes(q)).slice(0,250);
+  if(!items.length){list.innerHTML='<div class="panel"><h2>Keine Karte gefunden</h2><p>Suche nach Muskelname, Ursprung, Ansatz, Innervation oder Funktion.</p></div>';return;}
+  items.forEach(c=>{
     let div=document.createElement('article');div.className='card';
     div.innerHTML=`<h3>${c.term}</h3><span class=tag>${c.chapter}</span><div class="kvwrap">${['Ursprung','Ansatz','Innervation','Funktion'].map(k=>c[k]?`<div class="kv ${k.toLowerCase()}"><b>${iconFor(k)} ${k}</b><span>${escapeHtml(c[k])}</span></div>`:'').join('')}</div>`;
     list.appendChild(div)
   })
 }
 function iconFor(k){return {Ursprung:'📍',Ansatz:'🎯',Innervation:'🧠',Funktion:'⚙️'}[k]||''}
-function renderFav(){let list=$('#favList');let arr=D.chapters.filter(c=>fav.has(c.title));list.innerHTML=arr.length?'':'<div class="panel"><h2>Noch keine Favoriten</h2><p>Speichere schwere Kapitel mit ☆ Favorit.</p></div>';arr.forEach(c=>{let div=document.createElement('article');div.className='chapter';div.innerHTML=`<h2>${c.title}</h2><p>${c.summary}</p><button class=ghost>Entfernen</button>`;div.querySelector('button').onclick=()=>{fav.delete(c.title);save();renderFav();renderChapters($('#search').value)};list.appendChild(div)})}
+function renderFav(){let list=$('#favList');let arr=D.chapters.filter(c=>fav.has(c.title));list.innerHTML=arr.length?'':'<div class="panel"><span class="eyebrow">⭐ Favoriten</span><h2>Noch keine Favoriten</h2><p>Speichere schwere Kapitel mit ☆ Favorit.</p></div>';arr.forEach(c=>{let div=document.createElement('article');div.className='chapter';div.innerHTML=`<div class="chapter-head"><span class="eyebrow">${chapterIcon(c.title)} Gespeichert</span><h2>${c.title}</h2><p>${c.summary}</p></div><button class=ghost>Entfernen</button>`;div.querySelector('button').onclick=()=>{fav.delete(c.title);save();renderFav();renderChapters($('#search').value)};list.appendChild(div)})}
 function newQuestion(){let q=D.quiz[Math.floor(Math.random()*D.quiz.length)];let box=$('#quizBox');box.className='';box.innerHTML=`<h3>${q.q}</h3><span class=tag>${q.chapter}</span><div class="answer"><b>Lösung:</b><p>${q.a}</p></div><div class=row><button id=showA>Lösung anzeigen</button><button class=ghost id=nextQ>Nächste</button></div>`;$('#showA').onclick=()=>box.classList.add('showAnswer');$('#nextQ').onclick=newQuestion}
 $$('nav button').forEach(b=>b.onclick=()=>{$$('nav button').forEach(x=>x.classList.remove('active'));b.classList.add('active');$$('.tab').forEach(t=>t.classList.remove('show'));$('#'+b.dataset.tab).classList.add('show')});
 $('#search').oninput=e=>renderChapters(e.target.value);$('#cardSearch').oninput=e=>renderCards(e.target.value);$('#newQ').onclick=newQuestion;$('#themeBtn').onclick=()=>{document.body.classList.toggle('dark');localStorage.dark=document.body.classList.contains('dark')?'1':'0'};if(localStorage.dark==='1')document.body.classList.add('dark');if('serviceWorker'in navigator)navigator.serviceWorker.register('sw.js');renderChapters();renderCards();renderFav();newQuestion();updateStats();
