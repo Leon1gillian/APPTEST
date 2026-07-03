@@ -1,7 +1,66 @@
-const D=window.APP_DATA;const $=s=>document.querySelector(s);const $$=s=>[...document.querySelectorAll(s)];let learned=new Set(JSON.parse(localStorage.learned||'[]'));let fav=new Set(JSON.parse(localStorage.fav||'[]'));function save(){localStorage.learned=JSON.stringify([...learned]);localStorage.fav=JSON.stringify([...fav]);updateStats()}function updateStats(){let p=Math.round(learned.size/D.chapters.length*100);$('#bar').style.width=p+'%';$('#stats').textContent=`${learned.size}/${D.chapters.length} Kapitel gelernt`;}
-function renderChapters(q=''){let list=$('#chapterList');q=q.toLowerCase();list.innerHTML='';D.chapters.filter(c=>(c.title+' '+c.body).toLowerCase().includes(q)).forEach((c,i)=>{let id='ch'+i;let div=document.createElement('article');div.className='chapter '+(learned.has(c.title)?'learned':'');div.innerHTML=`<h2>${c.title}</h2><p>${c.summary||''}</p><span class=tag>${c.count} Lernzeilen</span><div class=row><button class=ghost data-open>Aufklappen</button><button data-done>${learned.has(c.title)?'Gelernt ✓':'Als gelernt markieren'}</button><button class=ghost data-fav>${fav.has(c.title)?'⭐ Gespeichert':'☆ Favorit'}</button></div><div class=body>${escapeHtml(c.body)}</div>`;div.querySelector('[data-open]').onclick=()=>div.classList.toggle('open');div.querySelector('[data-done]').onclick=()=>{learned.has(c.title)?learned.delete(c.title):learned.add(c.title);save();renderChapters($('#search').value)};div.querySelector('[data-fav]').onclick=()=>{fav.has(c.title)?fav.delete(c.title):fav.add(c.title);save();renderChapters($('#search').value);renderFav()};list.appendChild(div)})}
-function renderCards(q=''){let list=$('#cardList');q=q.toLowerCase();list.innerHTML='';D.cards.filter(c=>JSON.stringify(c).toLowerCase().includes(q)).slice(0,250).forEach(c=>{let div=document.createElement('article');div.className='card';div.innerHTML=`<h3>${c.term}</h3><span class=tag>${c.chapter}</span>${['Ursprung','Ansatz','Innervation','Funktion'].map(k=>c[k]?`<div class=kv><b>${k}</b><span>${c[k]}</span></div>`:'').join('')}`;list.appendChild(div)})}
+const D=window.APP_DATA;
+const $=s=>document.querySelector(s);
+const $$=s=>[...document.querySelectorAll(s)];
+let learned=new Set(JSON.parse(localStorage.learned||'[]'));
+let fav=new Set(JSON.parse(localStorage.fav||'[]'));
+function save(){localStorage.learned=JSON.stringify([...learned]);localStorage.fav=JSON.stringify([...fav]);updateStats()}
+function updateStats(){let p=Math.round(learned.size/D.chapters.length*100);$('#bar').style.width=p+'%';$('#stats').textContent=`${learned.size}/${D.chapters.length} Kapitel gelernt`;}
+function escapeHtml(s){return String(s||'').replace(/[&<>]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]))}
+function formatLine(line){
+  const safe=escapeHtml(line.trim());
+  if(!safe) return '';
+  if(safe.startsWith('- ')) return `<li>${safe.slice(2)}</li>`;
+  if(/^([A-ZÄÖÜa-zäöüß .()\/]+):\s/.test(safe) && safe.length<170){
+    const i=safe.indexOf(':');
+    return `<div class="info-line"><b>${safe.slice(0,i)}</b><span>${safe.slice(i+1).trim()}</span></div>`;
+  }
+  return `<p>${safe}</p>`;
+}
+function formatBody(text){
+  const lines=String(text||'').split('\n');
+  let html='', inList=false;
+  const closeList=()=>{if(inList){html+='</ul>';inList=false;}};
+  for(const raw of lines){
+    const line=raw.trim();
+    if(!line){closeList(); continue;}
+    const isHeading=/^[🦴🔗💪📖🔄💡🧠⚙️⭐📝]/.test(line) || /^[A-ZÄÖÜ0-9 ()\/.-]{4,}$/.test(line) && line.length<65;
+    if(isHeading){closeList(); html+=`<section class="learn-section"><h3>${escapeHtml(line)}</h3>`; continue;}
+    if(line.startsWith('- ')){
+      if(!inList){html+='<ul class="clean-list">'; inList=true;}
+      html+=formatLine(line);
+    } else {
+      closeList();
+      if(!html.endsWith('</section>') && html.includes('<section') && !html.endsWith('</ul>')) html+=formatLine(line);
+      else html+=`<section class="learn-section">${formatLine(line)}`;
+    }
+  }
+  closeList();
+  const open=(html.match(/<section/g)||[]).length, close=(html.match(/<\/section>/g)||[]).length;
+  html+='</section>'.repeat(Math.max(0,open-close));
+  return html || `<p>${escapeHtml(text)}</p>`;
+}
+function renderChapters(q=''){
+  let list=$('#chapterList');q=q.toLowerCase();list.innerHTML='';
+  D.chapters.filter(c=>(c.title+' '+c.body).toLowerCase().includes(q)).forEach((c,i)=>{
+    let div=document.createElement('article');
+    div.className='chapter '+(learned.has(c.title)?'learned':'');
+    div.innerHTML=`<div class="chapter-head"><h2>${c.title}</h2><p>${c.summary||''}</p><span class=tag>${c.count} Lernzeilen</span></div><div class=row><button class=ghost data-open>Aufklappen</button><button data-done>${learned.has(c.title)?'Gelernt ✓':'Als gelernt markieren'}</button><button class=ghost data-fav>${fav.has(c.title)?'⭐ Gespeichert':'☆ Favorit'}</button></div><div class=body>${formatBody(c.body)}</div>`;
+    div.querySelector('[data-open]').onclick=()=>{div.classList.toggle('open'); div.querySelector('[data-open]').textContent=div.classList.contains('open')?'Zuklappen':'Aufklappen'};
+    div.querySelector('[data-done]').onclick=()=>{learned.has(c.title)?learned.delete(c.title):learned.add(c.title);save();renderChapters($('#search').value)};
+    div.querySelector('[data-fav]').onclick=()=>{fav.has(c.title)?fav.delete(c.title):fav.add(c.title);save();renderChapters($('#search').value);renderFav()};
+    list.appendChild(div)
+  })
+}
+function renderCards(q=''){
+  let list=$('#cardList');q=q.toLowerCase();list.innerHTML='';
+  D.cards.filter(c=>JSON.stringify(c).toLowerCase().includes(q)).slice(0,250).forEach(c=>{
+    let div=document.createElement('article');div.className='card';
+    div.innerHTML=`<h3>${c.term}</h3><span class=tag>${c.chapter}</span><div class="kvwrap">${['Ursprung','Ansatz','Innervation','Funktion'].map(k=>c[k]?`<div class="kv ${k.toLowerCase()}"><b>${iconFor(k)} ${k}</b><span>${escapeHtml(c[k])}</span></div>`:'').join('')}</div>`;
+    list.appendChild(div)
+  })
+}
+function iconFor(k){return {Ursprung:'📍',Ansatz:'🎯',Innervation:'🧠',Funktion:'⚙️'}[k]||''}
 function renderFav(){let list=$('#favList');let arr=D.chapters.filter(c=>fav.has(c.title));list.innerHTML=arr.length?'':'<div class="panel"><h2>Noch keine Favoriten</h2><p>Speichere schwere Kapitel mit ☆ Favorit.</p></div>';arr.forEach(c=>{let div=document.createElement('article');div.className='chapter';div.innerHTML=`<h2>${c.title}</h2><p>${c.summary}</p><button class=ghost>Entfernen</button>`;div.querySelector('button').onclick=()=>{fav.delete(c.title);save();renderFav();renderChapters($('#search').value)};list.appendChild(div)})}
 function newQuestion(){let q=D.quiz[Math.floor(Math.random()*D.quiz.length)];let box=$('#quizBox');box.className='';box.innerHTML=`<h3>${q.q}</h3><span class=tag>${q.chapter}</span><div class="answer"><b>Lösung:</b><p>${q.a}</p></div><div class=row><button id=showA>Lösung anzeigen</button><button class=ghost id=nextQ>Nächste</button></div>`;$('#showA').onclick=()=>box.classList.add('showAnswer');$('#nextQ').onclick=newQuestion}
-function escapeHtml(s){return s.replace(/[&<>]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]))}
-$$('nav button').forEach(b=>b.onclick=()=>{$$('nav button').forEach(x=>x.classList.remove('active'));b.classList.add('active');$$('.tab').forEach(t=>t.classList.remove('show'));$('#'+b.dataset.tab).classList.add('show')});$('#search').oninput=e=>renderChapters(e.target.value);$('#cardSearch').oninput=e=>renderCards(e.target.value);$('#newQ').onclick=newQuestion;$('#themeBtn').onclick=()=>{document.body.classList.toggle('dark');localStorage.dark=document.body.classList.contains('dark')?'1':'0'};if(localStorage.dark==='1')document.body.classList.add('dark');if('serviceWorker'in navigator)navigator.serviceWorker.register('sw.js');renderChapters();renderCards();renderFav();newQuestion();updateStats();
+$$('nav button').forEach(b=>b.onclick=()=>{$$('nav button').forEach(x=>x.classList.remove('active'));b.classList.add('active');$$('.tab').forEach(t=>t.classList.remove('show'));$('#'+b.dataset.tab).classList.add('show')});
+$('#search').oninput=e=>renderChapters(e.target.value);$('#cardSearch').oninput=e=>renderCards(e.target.value);$('#newQ').onclick=newQuestion;$('#themeBtn').onclick=()=>{document.body.classList.toggle('dark');localStorage.dark=document.body.classList.contains('dark')?'1':'0'};if(localStorage.dark==='1')document.body.classList.add('dark');if('serviceWorker'in navigator)navigator.serviceWorker.register('sw.js');renderChapters();renderCards();renderFav();newQuestion();updateStats();
